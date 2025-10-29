@@ -9,7 +9,7 @@
 |-------|------|--------------|-------------|
 | `@id` | String | 1 | The exercise's UUID. |
 | `@type` | String | 1 | Always "schema:LearningResource". |
-| `schema:isBasedOn` | Array<String> | 0-n | Exercises this one is based on. |
+| `schema:isBasedOn` | Array&lt;String&gt; | 0-n | Exercises this one is based on. |
 | `stg:hasAlternativeDependency` | Object | 0-n | Represents a set of alternative prerequisites. |
 
 ## `stg:AlternativeDependency` structure
@@ -17,7 +17,7 @@
 | Field | Type | Multiplicity | Description |
 |-------|------|--------------|-------------|
 | `@type` | String | 1 | Always "stg:AlternativeDependency" |
-| `stg:options` | Array<String> | 1-n | List of alternative prerequisite exercises. |
+| `stg:options` | Array&lt;String&gt; | 1-n | List of alternative prerequisite exercises. |
 
 ### Example
 

@@ -16,7 +16,7 @@
 
 | Field | Type | Multiplicity | Description |
 |-------|------|--------------|-------------|
-| `@type` | String | 1 | Always "stg:AlternativeDependency" |
+| `@type` | String | 1 | Always "stg:AlternativeDependency". |
 | `stg:isBasedOnOptions` | String | 1-n | List of alternative prerequisite exercises. |
 
 ### Example

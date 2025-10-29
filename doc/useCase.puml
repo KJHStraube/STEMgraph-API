@@ -1,0 +1,24 @@
+@startuml
+
+left to right direction
+skinparam packageStyle rectangle
+
+:Admin:
+:Learner:
+Learner <|-- Admin
+
+rectangle STEMgraph-API {
+	(get whole STEMgraph)
+	(get path to exercise)
+	(get info about exercise)
+	(get existing topics)
+	(refresh DB)
+}
+
+Admin -- (refresh DB)
+Learner -- (get whole STEMgraph)
+Learner -- (get existing topics)
+Learner -- (get path to exercise)
+Learner -- (get info about exercise)
+
+@enduml

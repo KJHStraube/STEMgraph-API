@@ -1,0 +1,8 @@
+services:
+  stemgraph-parser:
+    build: .
+    volumes:
+      - data-volume:/stemgraph
+
+volumes:
+  data-volume:

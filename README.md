@@ -4,7 +4,7 @@ A FastAPI solution for [STEMgraph](https://github.com/STEMgraph).
 
 ## Repository structure
 
-/docs: Documentation  
+/doc: Documentation  
 /bin: Scripts and Binaries
 
 ## Overview

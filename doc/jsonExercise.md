@@ -1,6 +1,6 @@
 # JSON-LD Structure: Exercise
 
-**Type:** `schema:LearningResource`
+**Type:** `schema:LearningResource`  
 **Context:** `https://schema.org` plus custom terms from `https://github.com/STEMgraph-API/vocab#`
 
 ## Properties

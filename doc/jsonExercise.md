@@ -1,7 +1,7 @@
 # JSON-LD Structure: Exercise
 
 **Type:** `schema:LearningResource`  
-**Context:** `https://schema.org` plus custom terms from `https://github.com/STEMgraph-API/vocab#`
+**Context:** `https://schema.org` plus custom terms from `https://github.com/STEMgraph/vocab#`
 
 ## Properties
 
@@ -26,7 +26,7 @@
 {
     "@context": {
         "schema": "https://schema.org",
-        "stg": "https://github.com/STEMgraph-API/vocab#"
+        "stg": "https://github.com/STEMgraph/vocab#"
     },
     "@id": "https://github.com/STEMgraph/f87c7e89-ece7-4c55-af54-16a3b3b7435f",
     "@type": "schema:LearningResource",

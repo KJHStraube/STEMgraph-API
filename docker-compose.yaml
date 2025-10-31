@@ -1,0 +1,23 @@
+services:
+  # Einmaliges Setup: GitHub Login
+  setup:
+    build: .
+    volumes:
+      - data-volume:/stemgraph
+      - gh-credentials:/root/.config/gh
+    entrypoint: /bin/bash
+    command: -c "gh auth login"
+    stdin_open: true
+    tty: true
+    profiles: ["setup"]
+  
+  # Hauptprogramm: Parser
+  stemgraph-parser:
+    build: .
+    volumes:
+      - data-volume:/stemgraph
+      - gh-credentials:/root/.config/gh
+
+volumes:
+  data-volume:
+  gh-credentials:

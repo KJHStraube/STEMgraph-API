@@ -1,5 +1,5 @@
 services:
-  # Einmaliges Setup: GitHub Login
+  
   setup:
     build: .
     volumes:
@@ -11,7 +11,6 @@ services:
     tty: true
     profiles: ["setup"]
   
-  # Hauptprogramm: Parser
   stemgraph-parser:
     build: .
     volumes:

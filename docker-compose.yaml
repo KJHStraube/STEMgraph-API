@@ -17,6 +17,20 @@ services:
       - data-volume:/stemgraph
       - gh-credentials:/root/.config/gh
 
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - data-volume:/app/data:ro
+    depends_on:
+      - stemgraph-parser
+    restart: unless-stopped
+
+
 volumes:
   data-volume:
   gh-credentials:

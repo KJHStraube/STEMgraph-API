@@ -27,85 +27,21 @@ echo "jsonld.tmp file created with header"
 echo "getting and decoding README.md files from Repolist"
 
 
-
-
-
-
 # PREPROCESSING
 
 while read -r p; do
 
-  # Extract JSON metadata from README 
-  meta=$(gh api /repos/STEMgraph/"$p"/contents/README.md -H 'Accept: application/vnd.github.v3.raw' 2>/dev/null | sed -n '/<!--/,/-->/p' | sed -n '/{/,/}/p')
+  # Extract JSON metadata from README
+  meta=$(gh api /repos/STEMgraph/"$p"/contents/README.md -H 'Accept: application/vnd.github.v3.raw' | sed -n '/<!--/,/-->/p' | sed -n '/{/,/}/p')
 
-
-  # Validate metadata -> "ok" or error message
-  validation=$(echo "$meta" | jq -r --arg repo "$p" '
-    def is_uuid: test("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
-    def has_prefix: test("^STEMgraph:") or test("^https?://");
-    
-    def validate_depends:
-      if type == "string" then
-        if has_prefix then "contains_prefix"
-        elif is_uuid then true
-        else "invalid_uuid_format"
-        end
-      elif type == "array" and length == 0 then true
-      elif type == "array" and (.[0] == "AND" or .[0] == "OR") then
-        if length < 2 then "and_or_without_operands"
-        else
-          [.[1:] | .[] | validate_depends] | 
-          if any(. != true) then (map(select(. != true)) | .[0])
-          else true
-          end
-        end
-      elif type == "array" then
-        [.[] | validate_depends] |
-        if any(. != true) then (map(select(. != true)) | .[0])
-        else true
-        end
-      else "unexpected_type"
-      end;
-    
-    if . == null or . == "" then "\($repo): no valid JSON metadata found"
-    elif .id | not then "\($repo): missing id field"
-    elif .depends_on and ((.depends_on | type) != "array") then "\($repo): depends_on is not an array"
-    elif .depends_on then
-      (.depends_on | validate_depends) as $result |
-      if $result == true then "ok"
-      else "\($repo): depends_on validation failed - \($result)"
-      end
-    else "ok"
-    end
-  ') 
-
-  if [ "$validation" != "ok" ]; then
-    echo "$validation" >> readme-errorlog.txt
-    continue
-  fi
-  
-
-# PROCESSING
-
-  # Generate all nodes from metadata
+  # PROCESSING
   echo "$meta" | jq -c --arg repo "$p" '
-      # Collect all UUIDs that need Exercise nodes
-      def collect_all_uuids:
-        if type == "string" then [.]
-        elif type == "array" and length == 0 then []
-        elif type == "array" and (.[0] == "AND" or .[0] == "OR") then
-          [.[1:] | .[] | collect_all_uuids] | add
-        elif type == "array" then
-          [.[] | collect_all_uuids] | add
-        else []
-        end;
       
       # Process depends_on array into isBasedOn and hasAlternativeDependency
       def process_depends:
         if type == "array" and length == 0 then
           {isBasedOn: [], altDep: null}
         elif type == "array" and .[0] == "AND" then
-          # Separate direct UUIDs and OR groups
           {
             isBasedOn: [.[1:] | .[] | select(type == "string")],
             altDep: (
@@ -120,7 +56,6 @@ while read -r p; do
             )
           }
         elif type == "array" and .[0] == "OR" then
-          # Everything goes into alternative dependency
           {
             isBasedOn: [],
             altDep: {
@@ -129,7 +64,6 @@ while read -r p; do
             }
           }
         elif type == "array" then
-          # Implicit AND - all direct UUIDs
           {
             isBasedOn: .,
             altDep: null
@@ -143,7 +77,6 @@ while read -r p; do
       if .depends_on then
         # Process dependencies
         (.depends_on | process_depends) as $deps |
-        (.depends_on | collect_all_uuids) as $all_uuids |
         
         # Output main Exercise node
         (
@@ -155,19 +88,15 @@ while read -r p; do
           (if $deps.altDep then {("stg:hasAlternativeDependency"): $deps.altDep} else {} end)
         ),
         # Output Exercise nodes for all referenced UUIDs
-        ($all_uuids | unique | .[] | {("@id"): ., ("@type"): "Exercise"})
+        (($deps.isBasedOn + (if $deps.altDep then $deps.altDep."stg:isBasedOnOptions" else [] end)) | unique | .[] | {("@id"): ., ("@type"): "Exercise"})
       else
         # No dependencies
         {("@id"): $eid, ("@type"): "Exercise"}
       end
   ' >> deps.txt.tmp
   ((parsed++))
+
 done < repolist.txt.tmp
-
-
-
-
-
 
 
 #POSTPROCESSING
@@ -199,10 +128,6 @@ echo ""
 echo "=========================================="
 echo "JSON-LD generated: ./jsonld.json"
 echo "Successfully parsed: $parsed / $total repos"
-if [ -f readme-errorlog.txt ]; then
-  error_count=$(wc -l < readme-errorlog.txt)
-  echo "Errors logged: $error_count repos (see readme-errorlog.txt)"
-fi
 echo "=========================================="
 
 rm *.tmp

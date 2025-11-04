@@ -4,7 +4,7 @@ RUN pip install --no-cache-dir "fastapi[standard]"
 
 #setting-stuff + preparation
 WORKDIR /app
-COPY main.py .
+COPY bin/main.py .
 EXPOSE 8000
 
 # run the api

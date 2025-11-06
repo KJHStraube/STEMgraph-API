@@ -1,8 +1,0 @@
-apt update
-apt install python3 python3-venv python3-pip
-
-python3 -m venv stg
-cd ./stg
-source ./bin/activate
-pip install "fastapi[standard]" 
-fastapi main.py

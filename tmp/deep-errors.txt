@@ -9,3 +9,6 @@ b9e0a0a7-cce1-4d14-ae1c-5f8f57472c46 <- 8c79cd1f-f6bd-4930-b62c-b2970c412735 ?
 75f53c25-f20f-4dfd-b5c4-9251c83d64be <- 8c79cd1f-f6bd-4930-b62c-b2970c412735 ?
 2ba87074-5f0a-4949-a25c-a34ab7fcce1e
 6908d646-c436-4cc7-8a4a-1f742f8a0533 <- "67ed6d0b4d7c81918a47a26fdf1d2bfd" (67ed6d0b-4d7c-8191-8a47-a26fdf1d2bfd -> 404)
+
+
+https://github.com/MaxClerkwell/1b2fb326-d1d7-4c0c-8193-c563871e3707/tree/main <- not in STEMgraph + no README.md

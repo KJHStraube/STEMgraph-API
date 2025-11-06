@@ -1,0 +1,29 @@
+@startuml
+skinparam backgroundColor white
+
+title STEMgraph-API Architecture
+
+actor User
+
+rectangle "setup" as setup
+rectangle "stemgraph-parser" as parser
+rectangle "api" as api
+
+database "data-volume" as data
+database "gh-credentials" as gh
+
+cloud "GitHub API" as github
+
+User --> setup : 1. auth
+setup --> gh : stores token
+
+User --> parser : 2. run
+parser --> gh : uses token
+parser --> github : fetches repos
+parser --> data : writes jsonld.json
+
+User --> api : 3. start
+api --> data : reads jsonld.json
+api --> User : http://localhost:8000
+
+@enduml

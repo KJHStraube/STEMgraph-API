@@ -1,6 +1,6 @@
 # JSON-LD structure: Graph
 
-**Type:** `JSON-LD`
+**Type:** `JSON-LD`  
 **Context:** `doc/graphContext.json`
 
 ## Properties

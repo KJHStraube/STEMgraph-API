@@ -13,6 +13,12 @@ The metadata is placed on top of the exercise document between &lt;!-- and --&gt
 | `author` | String | 1-n | The exercise's author(s). |
 | `first_used` | Date | 1 | The day the exercise was first used. |
 | `keywords` | String | 0-n | Tags describing the exercise's content. |
+| `teaches` | String | 1 | The competency a person taking this exercise is expected to learn. |
+
+### Comments
+
+- It's not clear if the field *first_used* really is important. Maybe a field *published_at* would be more meaningful.
+- At the moment (Nov 2025), the *teaches* field does not yet exist in any existing exercise. The first heading can be used as its value until its creation.
 
 ### Example
 
@@ -20,7 +26,6 @@ The metadata is placed on top of the exercise document between &lt;!-- and --&gt
 {
   "id": "f87c7e89-ece7-4c55-af54-16a3b3b7435f",
   "depends_on": [
-    "AND",
     "302c98a7-cbea-435c-ada2-bbf7538429a2",
     "81f2e303-d35c-4857-9cb7-190e3c5372b0",
     [
@@ -31,5 +36,6 @@ The metadata is placed on top of the exercise document between &lt;!-- and --&gt
   ],
   "author": "Stephan Bökelmann",
   "first_used": "2025-06-05",
-  "keywords": ["C Compiler", "Inline Assembly", "Syscall", "Objdump", "Locals and Globals", "Primitive Types"]
+  "keywords": ["C Compiler", "Inline Assembly", "Syscall", "Objdump", "Locals and Globals", "Primitive Types"],
+  "teaches": "C Compiler: Working with Primitive Types and Inspecting Binaries"
 }

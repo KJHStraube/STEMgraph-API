@@ -9,7 +9,7 @@ import json
 # initialize global variables
 
 DB_LOC = "/app/data/jsonld.json"
-CONTEXT_LOC = "/app/data/graphContent.json"
+CONTEXT_LOC = "/app/data/graphContext.json"
 with open(DB_LOC) as db_file:
     db = json.load(db_file)
 

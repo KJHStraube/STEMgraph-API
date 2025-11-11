@@ -9,7 +9,7 @@ import json
 # initialize global variables
 
 DB_LOC = "/app/data/jsonld.json"
-CONTENT_LOC = "/app/data/graphContent.json"
+CONTEXT_LOC = "/app/data/graphContent.json"
 with open(DB_LOC) as db_file:
     db = json.load(db_file)
 
@@ -76,7 +76,7 @@ def expand_dependencies(data, curEx, visited):
                 add_exercise(data, dep, visited)
             elif isinstance(dep, dict) and dep.get("oneOf"):
                 for alt in dep["oneOf"]:
-                    add_exercise(data, dep, visited)
+                    add_exercise(data, alt, visited)
             else:
                 print("unexpected dependency structure in ", curEx["@id"], ": ", dep)
 
@@ -90,7 +90,7 @@ def add_exercise(data, uuid, visited):
             expand_dependencies(data, ex, visited)
 
 def add_graph_context(data):
-    """Gets contextdata from local context file and adds it to the data."""
+    """Gets context data from local context file and adds it to the data."""
     with open(CONTEXT_LOC) as context_file:
         context = json.load(context_file)
     data["@context"] = context["@context"]
@@ -98,6 +98,7 @@ def add_graph_context(data):
 def add_graph_metadata(data):
     """Adds metadata (url, created at & by) to the data."""
     data["@id"] = "https://example.com/"
+    data["generatedBy"] = {}
     data["generatedBy"]["@type"] = "schema:Organization"
     data["generatedBy"]["schema:name"] = "STEMgraph API"
     data["generatedBy"]["schema:url"] = "https://github.com/KJHStraube/STEMgraph-API"

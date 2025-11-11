@@ -15,69 +15,79 @@ with open(DB_LOC) as db_file:
 
 
 # here comes the api code
-
 app = FastAPI()
 
 @app.get("/")
 def read_root():
+    """Returns a greeting."""
     return {"message": "STEMgraph API"}
 
 @app.get("/getWholeGraph")
 def get_whole_graph():
+    """Returns the whole graph, i.e. database."""
     wholeGraph = copy.deepcopy(db)
     wholeGraph["generatedAt"] = now()
     return wholeGraph 
 
 @app.get("/getPathToExercise/{uuid}")
 def get_path_to_exercise(uuid: str):
-    # initialize return object
-    path = {}
-    add_graph_context(path)
-    add_graph_metadata(path)
-    path["@graph"] = []
-    
-    # get exercise tree
-    ex = get_exercise(uuid)
-    if ex is None:
-        return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content={"error": f"Exercise with ID '{uuid}' not found."}
-        )
-    path["@graph"].append(ex)
-    expand_dependencies(path, ex)
+    """Returns a graph with all nodes leading to the given one."""
+    path = get_exercise(uuid)
+    if not isinstance(path, JSONResponse) and path.get("@graph"):
+        visited = None
+        expand_dependencies(path, path["@graph"][0], visited)
     return path
+
+@app.get("/getExercise/{uuid}")
+def get_exercise(uuid: str):
+    """Returns a graph with one single exercise node."""
+    ex = get_exercise_node(uuid)
+    if ex is None:
+        return error_404(uuid)
+    exercise = init_graph()
+    exercise["@graph"].append(ex)
+    return exercise
 
 
 # auxiliary subroutines
 
-def get_exercise(uuid):
-    """Find the list element with the given uuid as @id."""
+def init_graph():
+    """Returns an empty graph framework."""
+    graph = {}
+    add_graph_context(graph)
+    add_graph_metadata(graph)
+    graph["@graph"] = []
+    return graph
+
+def get_exercise_node(uuid):
+    """Get the list element with the given uuid as @id."""
     for ex in db["@graph"]:
         if ex["@id"] == uuid:
             return ex
     return None
 
-def expand_dependencies(data, curEx, visited=None):
+def expand_dependencies(data, curEx, visited):
     """Add the current exercise's dependencies to the graph."""
     if visited is None:
         visited = set()
     if curEx.get("dependsOn") is not None:
         for dep in curEx["dependsOn"]:
             if isinstance(dep, str):
-                if dep not in visited:
-                    visited.add(dep)
-                    ex = get_exercise(dep)
-                    if ex is not None:
-                        data["@graph"].append(ex)
-                        expand_dependencies(data, ex, visited)
+                add_exercise(data, dep, visited)
             elif isinstance(dep, dict) and dep.get("oneOf"):
                 for alt in dep["oneOf"]:
-                    if alt not in visited:
-                        visited.add(alt)
-                        ex = get_exercise(alt)
-                        if ex is not None:
-                            data["@graph"].append(ex)
-                            expand_dependencies(data, ex, visited)
+                    add_exercise(data, dep, visited)
+            else:
+                print("unexpected dependency structure in ", curEx["@id"], ": ", dep)
+
+def add_exercise(data, uuid, visited):
+    """Adds an exercise to the data structure."""
+    if uuid not in visited:
+        visited.add(uuid)
+        ex = get_exercise_node(uuid)
+        if ex is not None:
+            data["@graph"].append(ex)
+            expand_dependencies(data, ex, visited)
 
 def add_graph_context(data):
     """Gets contextdata from local context file and adds it to the data."""
@@ -93,6 +103,16 @@ def add_graph_metadata(data):
     data["generatedBy"]["schema:url"] = "https://github.com/KJHStraube/STEMgraph-API"
     data["generatedAt"] = now()
 
+
+# lightweight and error functions
+
 def now():
     """Gets the current timestamp."""
     return datetime.utcnow().isoformat()
+
+def error_404(uuid):
+    """Returns customized file not found error message."""
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": f"Exercise '{uuid}' not found."}
+    )

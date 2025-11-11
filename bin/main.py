@@ -22,12 +22,39 @@ def read_root():
     """Returns a greeting."""
     return {"message": "STEMgraph API"}
 
+@app.get("/getKeywords")
+def get_keywords():
+    """Returns a list with all keywords found in the database."""
+    data = {}
+    add_graph_context(data)
+    add_graph_metadata(data)
+    data["keywords"] = []
+    keywords = set() 
+    for ex in db["@graph"]:
+        if ex.get("keywords") is not None:
+            keywords.update(ex["keywords"])
+    data["keywords"] = sorted(list(keywords))
+    return data
+
 @app.get("/getWholeGraph")
 def get_whole_graph():
     """Returns the whole graph, i.e. database."""
     wholeGraph = copy.deepcopy(db)
     wholeGraph["generatedAt"] = now()
     return wholeGraph 
+
+@app.get("/getExercisesByKeyword/{keyword}")
+def get_exercises_by_keyword(keyword: str):
+    """Returns a graph with all exercises tagged with a specific keyword."""
+    keyword = keyword.lower()
+    exTagged = init_graph()
+    for ex in db["@graph"]:
+        if ex.get("keywords") is not None:
+            if any(keyword == key.lower() for key in ex["keywords"]):
+                exTagged["@graph"].append(ex)
+    if not exTagged["@graph"]:
+        return error_noKey404(keyword)
+    return exTagged
 
 @app.get("/getPathToExercise/{uuid}")
 def get_path_to_exercise(uuid: str):
@@ -43,7 +70,7 @@ def get_exercise(uuid: str):
     """Returns a graph with one single exercise node."""
     ex = get_exercise_node(uuid)
     if ex is None:
-        return error_404(uuid)
+        return error_noEx404(uuid)
     exercise = init_graph()
     exercise["@graph"].append(ex)
     return exercise
@@ -111,9 +138,16 @@ def now():
     """Gets the current timestamp."""
     return datetime.utcnow().isoformat()
 
-def error_404(uuid):
+def error_noEx404(uuid):
     """Returns customized file not found error message."""
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
         content={"error": f"Exercise '{uuid}' not found."}
+    )
+
+def error_noKey404(keyword):
+    """Returns customized keyword not found error message."""
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"error": f"No exercises found for keyword '{keyword}'"}
     )

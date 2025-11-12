@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi import status
 from fastapi.responses import JSONResponse
+from collection import defaultdict
 from datetime import datetime
 import copy
 import json
@@ -20,28 +21,17 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     """Returns a greeting."""
-    return {"message": "STEMgraph API"}
+    return {"message": "Welcome to STEMgraph API"}
 
-@app.get("/getKeywords")
-def get_keywords():
-    """Returns a list with all keywords found in the database."""
-    data = {}
-    add_graph_context(data)
-    add_graph_metadata(data)
-    data["keywords"] = []
-    keywords = set() 
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            keywords.update(ex["keywords"])
-    data["keywords"] = sorted(list(keywords))
-    return data
-
-@app.get("/getWholeGraph")
-def get_whole_graph():
-    """Returns the whole graph, i.e. database."""
-    wholeGraph = copy.deepcopy(db)
-    wholeGraph["generatedAt"] = now()
-    return wholeGraph 
+@app.get("/getExercise/{uuid}")
+def get_exercise(uuid: str):
+    """Returns a graph with one single exercise node."""
+    ex = get_exercise_node(uuid)
+    if ex is None:
+        return error_noEx404(uuid)
+    exercise = init_graph()
+    exercise["@graph"].append(ex)
+    return exercise
 
 @app.get("/getExercisesByKeyword/{keyword}")
 def get_exercises_by_keyword(keyword: str):
@@ -56,6 +46,32 @@ def get_exercises_by_keyword(keyword: str):
         return error_noKey404(keyword)
     return exTagged
 
+@app.get("/getKeywordCount")
+def get_keyword_count():
+    """Returns all keywords found along with their frequency."""
+    keywordCount = {}
+    add_graph_metadata(keywordCount)
+    counts = defaultdict(int)
+    for ex in db["@graph"]:
+        if ex.get("keywords") is not None:
+            for keyword in ex["keywords"]:
+                counts[keyword] += 1
+    keywordCount["keywords"] = dict(counts)
+    return keywordCount
+
+@app.get("/getKeywordList")
+def get_keyword_list():
+    """Returns a list with all keywords found in the database."""
+    keywordList = {}
+    add_graph_metadata(keywordList)
+    keywordList["keywords"] = []
+    keywords = set() 
+    for ex in db["@graph"]:
+        if ex.get("keywords") is not None:
+            keywords.update(ex["keywords"])
+    keywordList["keywords"] = sorted(list(keywords))
+    return keywordList
+
 @app.get("/getPathToExercise/{uuid}")
 def get_path_to_exercise(uuid: str):
     """Returns a graph with all nodes leading to the given one."""
@@ -65,18 +81,15 @@ def get_path_to_exercise(uuid: str):
         expand_dependencies(path, path["@graph"][0], visited)
     return path
 
-@app.get("/getExercise/{uuid}")
-def get_exercise(uuid: str):
-    """Returns a graph with one single exercise node."""
-    ex = get_exercise_node(uuid)
-    if ex is None:
-        return error_noEx404(uuid)
-    exercise = init_graph()
-    exercise["@graph"].append(ex)
-    return exercise
+@app.get("/getWholeGraph")
+def get_whole_graph():
+    """Returns the whole graph, i.e. database."""
+    wholeGraph = copy.deepcopy(db)
+    wholeGraph["generatedAt"] = now()
+    return wholeGraph 
 
 
-# auxiliary subroutines
+# auxiliary graph manipulation subroutines
 
 def init_graph():
     """Returns an empty graph framework."""
@@ -128,7 +141,7 @@ def add_graph_metadata(data):
     data["generatedBy"] = {}
     data["generatedBy"]["@type"] = "schema:Organization"
     data["generatedBy"]["schema:name"] = "STEMgraph API"
-    data["generatedBy"]["schema:url"] = "https://github.com/KJHStraube/STEMgraph-API"
+    data["generatedBy"]["schema:url"] = "https://github.com/STEMgraph/API"
     data["generatedAt"] = now()
 
 

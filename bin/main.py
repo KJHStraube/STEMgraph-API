@@ -55,7 +55,7 @@ def get_keyword_count():
     for ex in db["@graph"]:
         if ex.get("keywords") is not None:
             for keyword in ex["keywords"]:
-                counts[keyword] += 1
+                counts[keyword.lower()] += 1
     keywordCount["keywords"] = dict(counts)
     return keywordCount
 
@@ -64,11 +64,10 @@ def get_keyword_list():
     """Returns a list with all keywords found in the database."""
     keywordList = {}
     add_graph_metadata(keywordList)
-    keywordList["keywords"] = []
     keywords = set() 
     for ex in db["@graph"]:
         if ex.get("keywords") is not None:
-            keywords.update(ex["keywords"])
+            keywords.update(key.lower() for key in ex["keywords"])
     keywordList["keywords"] = sorted(list(keywords))
     return keywordList
 

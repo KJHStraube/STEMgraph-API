@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi import status
 from fastapi.responses import JSONResponse
-from collection import defaultdict
+from collections import defaultdict
 from datetime import datetime
 import copy
 import json

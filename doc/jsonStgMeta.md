@@ -18,7 +18,6 @@ The metadata is placed on top of the exercise document between &lt;!-- and --&gt
 ### Comments
 
 - It's not clear if the field *first_used* really is important. Maybe a field *published_at* would be more meaningful.
-- At the moment (Nov 2025), the *teaches* field does not yet exist in any existing exercise. The first heading can be used as its value until its creation.
 
 ### Example
 

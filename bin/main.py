@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import Query
 from fastapi import status
 from fastapi.responses import JSONResponse
 from collections import defaultdict
@@ -23,6 +24,10 @@ def read_root():
     """Returns a greeting."""
     return {"message": "Welcome to STEMgraph API"}
 
+@app.get("/getAuthorList")
+def get_author_list():
+
+
 @app.get("/getExercise/{uuid}")
 def get_exercise(uuid: str):
     """Returns a graph with one single exercise node."""
@@ -34,14 +39,24 @@ def get_exercise(uuid: str):
     return exercise
 
 @app.get("/getExercisesByKeyword/{keyword}")
-def get_exercises_by_keyword(keyword: str):
-    """Returns a graph with all exercises tagged with a specific keyword."""
+def get_exercises_by_keyword(
+    keyword: str,
+    match: str = Query("exact", regex="^(exact|partial)$")
+):
+    """
+    Returns a graph with all exercises tagged with a specific keyword.
+    The 'match' parameter controls whether the search is exact or partial.
+    """
     keyword = keyword.lower()
     exTagged = init_graph()
     for ex in db["@graph"]:
         if ex.get("keywords") is not None:
-            if any(keyword == key.lower() for key in ex["keywords"]):
-                exTagged["@graph"].append(ex)
+            if match == "exact":
+                if any(keyword == key.lower() for key in ex["keywords"]):
+                    exTagged["@graph"].append(ex)
+            elif match == "partial":
+                if any(keyword in key.lower() for key in ex["keywords"]):
+                    exTagged["@graph"].append(ex)
     if not exTagged["@graph"]:
         return error_noKey404(keyword)
     return exTagged

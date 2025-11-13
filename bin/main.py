@@ -24,9 +24,21 @@ def read_root():
     """Returns a greeting."""
     return {"message": "Welcome to STEMgraph API"}
 
+@app.get("/getAuthorCount")
+def get_author_count():
+    """Returns all authors found along with their frequency."""
+    authorCount = {}
+    add_graph_metadata(authorCount)
+    authorCount["authors"] = get_count("author", subfield="name", lowercase=False)
+    return authorCount
+
 @app.get("/getAuthorList")
 def get_author_list():
-
+    """Returns a list with the names of all authors found in the database."""
+    authorList = {}
+    add_graph_metadata(authorList)
+    authorList["authors"] = get_list("author", subfield="name", lowercase=False)
+    return authorList
 
 @app.get("/getExercise/{uuid}")
 def get_exercise(uuid: str):
@@ -66,12 +78,7 @@ def get_keyword_count():
     """Returns all keywords found along with their frequency."""
     keywordCount = {}
     add_graph_metadata(keywordCount)
-    counts = defaultdict(int)
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            for keyword in ex["keywords"]:
-                counts[keyword.lower()] += 1
-    keywordCount["keywords"] = dict(counts)
+    keywordCount["keywords"] = get_count("keywords")
     return keywordCount
 
 @app.get("/getKeywordList")
@@ -79,11 +86,7 @@ def get_keyword_list():
     """Returns a list with all keywords found in the database."""
     keywordList = {}
     add_graph_metadata(keywordList)
-    keywords = set() 
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            keywords.update(key.lower() for key in ex["keywords"])
-    keywordList["keywords"] = sorted(list(keywords))
+    keywordList["keywords"] = get_list("keywords")
     return keywordList
 
 @app.get("/getPathToExercise/{uuid}")
@@ -112,6 +115,52 @@ def init_graph():
     add_graph_metadata(graph)
     graph["@graph"] = []
     return graph
+
+def get_count(field: str, subfield: str = None, lowercase: bool = True):
+    """
+    Returns frequency counts for a given field in the database.
+    - field: top-level field in each exercise
+    - subfield: optional subfield if field is a dict
+    - lowercase: normalize values to lowercase if True
+    """
+    counts = defaultdict(int)
+    for ex in db["@graph"]:
+        if ex.get(field) is not None:
+            field_values = ex[field]
+            if isinstance(field_values, str) or isinstance(field_values, dict):
+                field_values = [field_values]
+            for value in field_values:
+                if isinstance(value, dict) and subfield:
+                    value = value.get(subfield)
+                if value is None:
+                    continue
+                if lowercase and isinstance(value, str):
+                    value = value.lower()
+                counts[value] += 1
+    return dict(counts)
+
+def get_list(field: str, subfield: str = None, lowercase: bool = True):
+    """
+    Returns a list of unique values for a given field in the database.
+    - field: top-level field in each exercise (e.g. "keywords", "author")
+    - subfield: optional subfield if field is a dict (e.g. "name")
+    - lowercase: normalize values to lowercase if True
+    """
+    values = set()
+    for ex in db["@graph"]:
+        if ex.get(field) is not None:
+            field_values = ex[field]
+            if isinstance(field_values, str) or isinstance(field_values, dict):
+                field_values = [field_values]
+            for value in field_values:
+                if isinstance(value, dict) and subfield:
+                    value = value.get(subfield)
+                if value is None:
+                    continue
+                if lowercase and isinstance(value, str):
+                    value = value.lower()
+                values.add(value)
+    return sorted(list(values))
 
 def get_exercise_node(uuid):
     """Get the list element with the given uuid as @id."""

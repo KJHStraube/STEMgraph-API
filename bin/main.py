@@ -45,10 +45,24 @@ def get_exercise(uuid: str):
     """Returns a graph with one single exercise node."""
     ex = get_exercise_node(uuid)
     if ex is None:
-        return error_noEx404(uuid)
+        return error_notFound("uuid", uuid)
     exercise = init_graph()
     exercise["@graph"].append(ex)
     return exercise
+
+@app.get("/getExercisesByAuthor/{name}")
+def get_exercise_by_author(
+    name: str,
+    match: str = Query("exact", regex="^(exact|partial)$")
+):
+    """
+    Returns a graph with all exercises tagged with a specific author.
+    The 'match' parameter controls whether the search is exact or partial.
+    """
+    exTagged = get_exercise_by_tag("author", name, subfield="name", match=match)
+    if not exTagged["@graph"]:
+        return error_notFound("author", name)
+    return exTagged
 
 @app.get("/getExercisesByKeyword/{keyword}")
 def get_exercises_by_keyword(
@@ -59,18 +73,9 @@ def get_exercises_by_keyword(
     Returns a graph with all exercises tagged with a specific keyword.
     The 'match' parameter controls whether the search is exact or partial.
     """
-    keyword = keyword.lower()
-    exTagged = init_graph()
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            if match == "exact":
-                if any(keyword == key.lower() for key in ex["keywords"]):
-                    exTagged["@graph"].append(ex)
-            elif match == "partial":
-                if any(keyword in key.lower() for key in ex["keywords"]):
-                    exTagged["@graph"].append(ex)
+    exTagged = get_exercise_by_tag("keywords", keyword, match=match)
     if not exTagged["@graph"]:
-        return error_noKey404(keyword)
+        return error_notFound("keyword", keyword)
     return exTagged
 
 @app.get("/getKeywordCount")
@@ -162,6 +167,40 @@ def get_list(field: str, subfield: str = None, lowercase: bool = True):
                 values.add(value)
     return sorted(list(values))
 
+def get_exercises_by_tag(field: str, search: str, subfield: str = None, match: str = "exact", lowercase: bool = True):
+    """
+    Returns a graph with all exercises where the given field contains the given value.
+    - field: top-level field in each exercise (e.g. "keywords", "author")
+    - value: the search term
+    - subfield: optional subfield if field is a dict (e.g. "name")
+    - match: "exact" or "partial"
+    - lowercase: normalize values to lowercase if True
+    """
+    if lowercase:
+        search = search.lower()
+    exTagged = init_graph()
+    for ex in db["@graph"]:
+        if ex.get(field) is not None:
+            field_values = ex[field]
+            if isinstance(field_values, str) or isinstance(field_values, dict):
+                field_values = [field_values]
+            for val in field_values:
+                if isinstance(val, dict) and subfield:
+                    val = val.get(subfield)
+                if val is None:
+                    continue
+                if isinstance(val, str) and lowercase:
+                    valCmp = val.lower()
+                else:
+                    valCmp = val
+                if match == "exact" and search == valCmp:
+                    exTagged["@graph"].append(ex)
+                    break
+                elif match == "partial" and isinstance(valCmp, str) and search in valCmp:
+                    exTagged["@graph"].append(ex)
+                    break
+    return exTagged
+
 def get_exercise_node(uuid):
     """Get the list element with the given uuid as @id."""
     for ex in db["@graph"]:
@@ -212,18 +251,11 @@ def add_graph_metadata(data):
 
 def now():
     """Gets the current timestamp."""
-    return datetime.utcnow().isoformat()
+    return datetime.utcnow().isoformat() + "Z"
 
-def error_noEx404(uuid):
-    """Returns customized file not found error message."""
+def error_notFound(field, value):
+    """Returns a customized error message for searches with no result."""
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": f"Exercise '{uuid}' not found."}
-    )
-
-def error_noKey404(keyword):
-    """Returns customized keyword not found error message."""
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": f"No exercises found for keyword '{keyword}'"}
+        content={"error": f"No exercises found for {field}: '{value}'"}
     )

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi import Query
 from fastapi import status
 from fastapi.responses import JSONResponse
 from collections import defaultdict
@@ -23,27 +24,58 @@ def read_root():
     """Returns a greeting."""
     return {"message": "Welcome to STEMgraph API"}
 
+@app.get("/getAuthorCount")
+def get_author_count():
+    """Returns all authors found along with their frequency."""
+    authorCount = {}
+    add_graph_metadata(authorCount)
+    authorCount["authors"] = get_count("author", subfield="name", lowercase=False)
+    return authorCount
+
+@app.get("/getAuthorList")
+def get_author_list():
+    """Returns a list with the names of all authors found in the database."""
+    authorList = {}
+    add_graph_metadata(authorList)
+    authorList["authors"] = get_list("author", subfield="name", lowercase=False)
+    return authorList
+
 @app.get("/getExercise/{uuid}")
 def get_exercise(uuid: str):
     """Returns a graph with one single exercise node."""
     ex = get_exercise_node(uuid)
     if ex is None:
-        return error_noEx404(uuid)
+        return error_notFound("uuid", uuid)
     exercise = init_graph()
     exercise["@graph"].append(ex)
     return exercise
 
-@app.get("/getExercisesByKeyword/{keyword}")
-def get_exercises_by_keyword(keyword: str):
-    """Returns a graph with all exercises tagged with a specific keyword."""
-    keyword = keyword.lower()
-    exTagged = init_graph()
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            if any(keyword == key.lower() for key in ex["keywords"]):
-                exTagged["@graph"].append(ex)
+@app.get("/getExercisesByAuthor/{name}")
+def get_exercise_by_author(
+    name: str,
+    match: str = Query("exact", regex="^(exact|partial)$")
+):
+    """
+    Returns a graph with all exercises tagged with a specific author.
+    The 'match' parameter controls whether the search is exact or partial.
+    """
+    exTagged = get_exercise_by_tag("author", name, subfield="name", match=match)
     if not exTagged["@graph"]:
-        return error_noKey404(keyword)
+        return error_notFound("author", name)
+    return exTagged
+
+@app.get("/getExercisesByKeyword/{keyword}")
+def get_exercises_by_keyword(
+    keyword: str,
+    match: str = Query("exact", regex="^(exact|partial)$")
+):
+    """
+    Returns a graph with all exercises tagged with a specific keyword.
+    The 'match' parameter controls whether the search is exact or partial.
+    """
+    exTagged = get_exercise_by_tag("keywords", keyword, match=match)
+    if not exTagged["@graph"]:
+        return error_notFound("keyword", keyword)
     return exTagged
 
 @app.get("/getKeywordCount")
@@ -51,12 +83,7 @@ def get_keyword_count():
     """Returns all keywords found along with their frequency."""
     keywordCount = {}
     add_graph_metadata(keywordCount)
-    counts = defaultdict(int)
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            for keyword in ex["keywords"]:
-                counts[keyword.lower()] += 1
-    keywordCount["keywords"] = dict(counts)
+    keywordCount["keywords"] = get_count("keywords")
     return keywordCount
 
 @app.get("/getKeywordList")
@@ -64,11 +91,7 @@ def get_keyword_list():
     """Returns a list with all keywords found in the database."""
     keywordList = {}
     add_graph_metadata(keywordList)
-    keywords = set() 
-    for ex in db["@graph"]:
-        if ex.get("keywords") is not None:
-            keywords.update(key.lower() for key in ex["keywords"])
-    keywordList["keywords"] = sorted(list(keywords))
+    keywordList["keywords"] = get_list("keywords")
     return keywordList
 
 @app.get("/getPathToExercise/{uuid}")
@@ -97,6 +120,86 @@ def init_graph():
     add_graph_metadata(graph)
     graph["@graph"] = []
     return graph
+
+def get_count(field: str, subfield: str = None, lowercase: bool = True):
+    """
+    Returns frequency counts for a given field in the database.
+    - field: top-level field in each exercise
+    - subfield: optional subfield if field is a dict
+    - lowercase: normalize values to lowercase if True
+    """
+    counts = defaultdict(int)
+    for ex in db["@graph"]:
+        if ex.get(field) is not None:
+            field_values = ex[field]
+            if isinstance(field_values, str) or isinstance(field_values, dict):
+                field_values = [field_values]
+            for value in field_values:
+                if isinstance(value, dict) and subfield:
+                    value = value.get(subfield)
+                if value is None:
+                    continue
+                if lowercase and isinstance(value, str):
+                    value = value.lower()
+                counts[value] += 1
+    return dict(counts)
+
+def get_list(field: str, subfield: str = None, lowercase: bool = True):
+    """
+    Returns a list of unique values for a given field in the database.
+    - field: top-level field in each exercise (e.g. "keywords", "author")
+    - subfield: optional subfield if field is a dict (e.g. "name")
+    - lowercase: normalize values to lowercase if True
+    """
+    values = set()
+    for ex in db["@graph"]:
+        if ex.get(field) is not None:
+            field_values = ex[field]
+            if isinstance(field_values, str) or isinstance(field_values, dict):
+                field_values = [field_values]
+            for value in field_values:
+                if isinstance(value, dict) and subfield:
+                    value = value.get(subfield)
+                if value is None:
+                    continue
+                if lowercase and isinstance(value, str):
+                    value = value.lower()
+                values.add(value)
+    return sorted(list(values))
+
+def get_exercises_by_tag(field: str, search: str, subfield: str = None, match: str = "exact", lowercase: bool = True):
+    """
+    Returns a graph with all exercises where the given field contains the given value.
+    - field: top-level field in each exercise (e.g. "keywords", "author")
+    - value: the search term
+    - subfield: optional subfield if field is a dict (e.g. "name")
+    - match: "exact" or "partial"
+    - lowercase: normalize values to lowercase if True
+    """
+    if lowercase:
+        search = search.lower()
+    exTagged = init_graph()
+    for ex in db["@graph"]:
+        if ex.get(field) is not None:
+            field_values = ex[field]
+            if isinstance(field_values, str) or isinstance(field_values, dict):
+                field_values = [field_values]
+            for val in field_values:
+                if isinstance(val, dict) and subfield:
+                    val = val.get(subfield)
+                if val is None:
+                    continue
+                if isinstance(val, str) and lowercase:
+                    valCmp = val.lower()
+                else:
+                    valCmp = val
+                if match == "exact" and search == valCmp:
+                    exTagged["@graph"].append(ex)
+                    break
+                elif match == "partial" and isinstance(valCmp, str) and search in valCmp:
+                    exTagged["@graph"].append(ex)
+                    break
+    return exTagged
 
 def get_exercise_node(uuid):
     """Get the list element with the given uuid as @id."""
@@ -148,18 +251,11 @@ def add_graph_metadata(data):
 
 def now():
     """Gets the current timestamp."""
-    return datetime.utcnow().isoformat()
+    return datetime.utcnow().isoformat() + "Z"
 
-def error_noEx404(uuid):
-    """Returns customized file not found error message."""
+def error_notFound(field, value):
+    """Returns a customized error message for searches with no result."""
     return JSONResponse(
         status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": f"Exercise '{uuid}' not found."}
-    )
-
-def error_noKey404(keyword):
-    """Returns customized keyword not found error message."""
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"error": f"No exercises found for keyword '{keyword}'"}
+        content={"error": f"No exercises found for {field}: '{value}'"}
     )

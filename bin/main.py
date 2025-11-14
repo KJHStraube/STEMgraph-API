@@ -78,6 +78,14 @@ def get_exercises_by_keyword(
         return error_notFound("keyword", keyword)
     return exTagged
 
+@app.get("/getExercisesByTopic/{topic}")
+def get_exercises_by_topic(topic: str)
+    """ Returns a graph with all exercises which include "topic" in the 'teaches' field."""
+    exTopic = get_exercises_by_tag("teaches", topic, match=partial)
+    if not exTopic["@graph"]:
+        return error_notFound("teaches", topic)
+    return exTopic
+
 @app.get("/getKeywordCount")
 def get_keyword_count():
     """Returns all keywords found along with their frequency."""

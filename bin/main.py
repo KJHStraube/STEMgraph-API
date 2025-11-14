@@ -79,7 +79,7 @@ def get_exercises_by_keyword(
     return exTagged
 
 @app.get("/getExercisesByTopic/{topic}")
-def get_exercises_by_topic(topic: str)
+def get_exercises_by_topic(topic: str):
     """ Returns a graph with all exercises which include "topic" in the 'teaches' field."""
     exTopic = get_exercises_by_tag("teaches", topic, match=partial)
     if not exTopic["@graph"]:
@@ -209,7 +209,7 @@ def get_exercises_by_tag(field: str, search: str, subfield: str = None, match: s
                     break
     return exTagged
 
-def get_exercise_node(uuid):
+def get_exercise_node(uuid: str):
     """Get the list element with the given uuid as @id."""
     for ex in db["@graph"]:
         if ex["@id"] == uuid:

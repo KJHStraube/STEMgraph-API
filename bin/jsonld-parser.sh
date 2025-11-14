@@ -92,11 +92,8 @@ while read -r p; do
   
   # Extract JSON metadata from README
   meta=$(echo "$readme" | sed -n '/<!--/,/-->/p' | sed -n '/{/,/}/p')
-  
-  # Extract first heading (teaches)
-  teaches=$(echo "$readme" | grep -m 1 '^# ' | sed 's/^# //')
 
-  echo "$meta" | jq -c --arg repo "$p" --arg teaches "$teaches" '
+  echo "$meta" | jq -c --arg repo "$p" '
       def process_depends:
         if type != "array" or length == 0 then
           {dependsOn: [], altDep: null}
@@ -118,6 +115,7 @@ while read -r p; do
       .author as $author |
       .first_used as $published |
       .keywords as $keys |
+      .teaches as $teaches |
       
       # Build output object
       {("@id"): $eid, ("@type"): "Exercise", learningResourceType: "Exercise"}
@@ -125,7 +123,7 @@ while read -r p; do
       | if $author then . + {author: [{("@type"): "Person", name: $author}]} else . end
       | if $published then . + {publishedAt: $published} else . end
       | if $keys then . + {keywords: $keys} else . end
-      | if ($teaches != "") then . + {teaches: $teaches} else . end
+      | if $teaches then . + {teaches: $teaches} else . end
   ' >> deps.txt.tmp
   ((parsed++))
 done < repolist.txt.tmp

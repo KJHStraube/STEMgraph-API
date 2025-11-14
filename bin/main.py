@@ -51,7 +51,7 @@ def get_exercise(uuid: str):
     return exercise
 
 @app.get("/getExercisesByAuthor/{name}")
-def get_exercise_by_author(
+def get_exercises_by_author(
     name: str,
     match: str = Query("exact", regex="^(exact|partial)$")
 ):
@@ -59,7 +59,7 @@ def get_exercise_by_author(
     Returns a graph with all exercises tagged with a specific author.
     The 'match' parameter controls whether the search is exact or partial.
     """
-    exTagged = get_exercise_by_tag("author", name, subfield="name", match=match)
+    exTagged = get_exercises_by_tag("author", name, subfield="name", match=match)
     if not exTagged["@graph"]:
         return error_notFound("author", name)
     return exTagged
@@ -73,7 +73,7 @@ def get_exercises_by_keyword(
     Returns a graph with all exercises tagged with a specific keyword.
     The 'match' parameter controls whether the search is exact or partial.
     """
-    exTagged = get_exercise_by_tag("keywords", keyword, match=match)
+    exTagged = get_exercises_by_tag("keywords", keyword, match=match)
     if not exTagged["@graph"]:
         return error_notFound("keyword", keyword)
     return exTagged

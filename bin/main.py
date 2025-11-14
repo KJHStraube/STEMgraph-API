@@ -81,7 +81,7 @@ def get_exercises_by_keyword(
 @app.get("/getExercisesByTopic/{topic}")
 def get_exercises_by_topic(topic: str):
     """ Returns a graph with all exercises which include "topic" in the 'teaches' field."""
-    exTopic = get_exercises_by_tag("teaches", topic, match=partial)
+    exTopic = get_exercises_by_tag("teaches", topic, match="partial")
     if not exTopic["@graph"]:
         return error_notFound("teaches", topic)
     return exTopic

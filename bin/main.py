@@ -111,6 +111,17 @@ def get_path_to_exercise(uuid: str):
         expand_dependencies(path, path["@graph"][0], visited)
     return path
 
+@app.get("/getStatistics")
+def get_statistics():
+    """Returns several statistics about the graph."""
+    stats = {}
+    add_graph_metadata(stats)
+    stats["@type"] = "Statistics"
+    stats["keywordCountDistinct"] = len(get_list("keywords"))
+    stats["keywordCountTotal"] = sum(get_count("keywords").values())
+    stats["nodeCount"] = len(db["@graph"])
+    return stats
+
 @app.get("/getWholeGraph")
 def get_whole_graph():
     """Returns the whole graph, i.e. database."""

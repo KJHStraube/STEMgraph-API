@@ -1,6 +1,6 @@
 services:
   setup:
-    image: dockerreg.gruppe.ai/stemgraph-setup:latest
+    image: dockerreg.gruppe.ai/stemgraph-setup:1.0.0
     volumes:
       - data-volume:/stemgraph
       - gh-credentials:/root/.config/gh
@@ -11,23 +11,13 @@ services:
     profiles: ["setup"]
 
   stemgraph-parser:
-    image: dockerreg.gruppe.ai/stemgraph-setup:latest
+    image: dockerreg.gruppe.ai/stemgraph-setup:1.0.0
     volumes:
       - data-volume:/stemgraph
       - gh-credentials:/root/.config/gh
 
-  copy-graph:
-    image: alpine
-    volumes:
-      - data-volume:/stemgraph
-      - ./doc:/doc:ro
-    command: sh -c "cp /doc/graphContext.json /stemgraph/graphContext.json"
-    depends_on:
-      stemgraph-parser:
-        condition: service_completed_successfully
-    
   api:
-    image: dockerreg.gruppe.ai/stemgraph-api:latest
+    image: dockerreg.gruppe.ai/stemgraph-api:1.0.0
     expose:
       - "8000"
     volumes:
@@ -40,7 +30,7 @@ services:
     restart: on-failure
     networks:
       frontproxy_fnet:
-        ipv4_address: 172.18.18.30
+        ipv4_address: 172.20.20.30
       backend:
 
 volumes:
